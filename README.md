@@ -1,15 +1,17 @@
-Markdown
 # Hotel Reservation & Front Desk Management System
 
-A full-stack hotel management web platform built for single-hotel operations. It features a guest booking engine, an interactive front-desk dashboard, atomic concurrency protection for simultaneous room reservations, and database-level server-side pagination.
+A full-stack hotel management web platform built for single-hotel operations. It features a guest booking engine, an interactive front-desk dashboard, atomic concurrency protection for simultaneous room reservations, dedicated room and inventory management, and database-level server-side pagination.
 
 ---
 
 ## 🎥 Video Demonstration & Walkthrough
 
-A complete 5–10 minute demonstration walking through the guest booking flow, staff front desk dashboard (check-in/check-out), room management, server-side pagination, and the concurrency test execution:
+A complete walkthrough demonstrating the guest booking flow, staff front desk dashboard (check-in/check-out), server-side pagination, and concurrency test execution:
 
 👉 **[Watch the Video Walkthrough on Google Drive](https://drive.google.com/file/d/1V5Pi9pn4IMGBh1rcecUPPSLj7scnA3dQ/view?usp=share_link)**
+
+> **📌 Important Note on Room & Inventory Management:**  
+> The video recording focuses on the real-time guest booking lifecycle and front desk check-in/out operations. The dedicated **Room Management interface (`/staff/rooms`)** is fully implemented and accessible via the Staff navigation bar. It provides staff with complete CRUD control to create room types, update descriptions, adjust per-night rates, modify total inventory counts, and toggle active/deactivate statuses.
 
 ---
 
@@ -37,8 +39,6 @@ backend/src/
 ├── middlewares/    # Authentication (JWT verification) & Error handling
 ├── types/          # Domain TypeScript interfaces & enums
 └── utils/          # Database seeding script & helper functions
-
-
 ### Core Business Rules & Server Ownership
 - **Strict Server Authority**: The client never calculates prices or confirms room availability. The server strictly validates dates, calculates total nights, reads the room rate snapshot (`priceSnapshot`), and derives total costs.
 - **Date Validation**: Check-out must occur strictly after check-in, and booking dates in the past are rejected.
@@ -64,18 +64,7 @@ When multiple guests attempt to book the final available room for overlapping da
 5. **Database Indexing**: A compound index optimizes availability lookups:
    ```typescript
    reservationSchema.index({ roomTypeId: 1, status: 1, checkIn: 1, checkOut: 1 });
-4. Server-Side Pagination & Query Performance
-The staff reservation table enforces database-level pagination using .skip((page - 1) * limit) and .limit(limit) rather than fetching full collections into memory:   
-Technical AssesSment - Full Stack Developer.pdf
-
-Paginated API Contract (GET /api/reservations/staff/all)
-Query Parameters: page (default 1), limit (default 10), status (optional filter)   
-Technical AssesSment - Full Stack Developer.pdf
-
-Response Shape:
-
-JSON
-{
+4. Key Application Pages & CapabilitiesGuest PortalHome / Room Catalog (/): Displays active room types with descriptions, guest capacities, amenities, and nightly pricing.   Availability Search (/search): Allows guests to specify check-in, check-out, and guest counts to dynamically query real-time room availability and server-computed total pricing.   My Reservations (/my-reservations): Lists the signed-in guest's personal reservations with reference codes, current status, and self-cancellation for eligible bookings.   Staff Portal (Protected)Front Desk Dashboard (/staff/dashboard):Live metric KPI cards: Today's Arrivals, Departures, Currently Occupied Rooms, and Pending Reservations.   Front Desk lifecycle action buttons (Confirm Pending, Check-in, Check-out).   Server-side paginated reservation table with real-time status filtering[cite: 5, 7].Room & Inventory Management (/staff/rooms):Add new room types with custom descriptions, capacity, per-night price, and image URLs.   Real-time inventory adjustment (e.g., increasing or decreasing total room counts).   Instant Activate/Deactivate toggles to control room visibility across the guest catalog.   5. Server-Side Pagination & Query PerformanceThe staff reservation table enforces database-level pagination using .skip((page - 1) * limit) and .limit(limit) rather than fetching full collections into memory:   Paginated API Contract (GET /api/reservations/staff/all)Query Parameters: page (default 1), limit (default 10), status (optional filter)   Response Shape:JSON{
   "data": [ /* Array of reservation documents */ ],
   "meta": {
     "page": 1,
@@ -84,74 +73,18 @@ JSON
     "totalPages": 3
   }
 }
-5. Scalability & Production Readiness
-Stateless Architecture: The Express API uses stateless JWT authentication. No local memory sessions or process-specific state are held, allowing instances to scale horizontally behind a reverse proxy (e.g., AWS ALB or Nginx).   
-Technical AssesSment - Full Stack Developer.pdf
-+ 1
-
-Database Connection Pooling: Mongoose manages a persistent connection pool to MongoDB Atlas, reusing sockets efficiently under high request volumes.
-
-Failure Mitigations:
-
-Rate Limiting: API rate limiting (express-rate-limit) prevents denial-of-service spikes on booking endpoints.
-
-Idempotency: Booking submissions can utilize client-generated idempotency keys to avoid duplicate bookings from network retries.
-
-Caching: Static room descriptions and facilities can be cached in Redis with invalidation on updates.
-
-6. Local Setup & Running Instructions
-Prerequisites
-Node.js (v18+)
-
-MongoDB Atlas cluster URL (or local MongoDB instance)
-
-1. Backend Setup
-Bash
-cd backend
+6. Scalability & Production ReadinessStateless Architecture: The Express API uses stateless JWT authentication. No local memory sessions or process-specific state are held, allowing instances to scale horizontally behind a reverse proxy (e.g., AWS ALB or Nginx).   Database Connection Pooling: Mongoose manages a persistent connection pool to MongoDB Atlas, reusing sockets efficiently under high request volumes.Failure Mitigations:Rate Limiting: API rate limiting (express-rate-limit) prevents denial-of-service spikes on booking endpoints.Idempotency: Booking submissions can utilize client-generated idempotency keys to avoid duplicate bookings from network retries.Caching: Static room descriptions and facilities can be cached in Redis with invalidation on updates.7. Local Setup & Running InstructionsPrerequisitesNode.js (v18+)MongoDB Atlas cluster URL (or local MongoDB instance)1. Backend SetupBashcd backend
 npm install
-Create a .env file in backend/:
-
-Code snippet
-PORT=5000
+Create a .env file in backend/:Code snippetPORT=5000
 NODE_ENV=development
 MONGO_URI=your_mongodb_atlas_connection_string
 JWT_SECRET=super_secret_hotel_key_2026
 JWT_EXPIRES_IN=7d
-Seed initial data (creates demo rooms, staff, and guest credentials):
-
-Bash
-npm run seed
-Start the backend API server:
-
-Bash
-npm run dev
-Server runs at http://localhost:5000.
-
-2. Frontend Setup
-Bash
-cd ../frontend
+Seed initial data (creates demo rooms, staff, and guest credentials):Bashnpm run seed
+Start the backend API server:Bashnpm run dev
+Server runs at http://localhost:5000.2. Frontend SetupBashcd ../frontend
 npm install
 npm run dev
-Client runs at http://localhost:5173.
-
-7. Demo Accounts & Verification
-The database seeder automatically provides test credentials:
-
-Role	Email	Password	
-Access Capabilities
-
-Staff / Admin	staff@hotel.com	password123	
-Dashboard metrics, check-in/out, room & inventory management, paginated bookings
-
-Guest	guest@hotel.com	password123	
-Availability search, room booking, self-service cancellation
-
-8. Automated Testing
-Run the automated integration test verifying atomic concurrency and overbooking prevention:
-
-Bash
-cd backend
+Client runs at http://localhost:5173.8. Demo Accounts & VerificationThe database seeder automatically provides test credentials:RoleEmailPasswordAccess CapabilitiesStaff / Adminstaff@hotel.compassword123Dashboard metrics, check-in/out, room & inventory management, paginated bookingsGuestguest@hotel.compassword123Availability search, room booking, self-service cancellation9. Automated TestingRun the automated integration test verifying atomic concurrency and overbooking prevention:Bashcd backend
 npm run test
-   
-Technical AssesSment - Full Stack Developer.pdf
 The test fires two simultaneous booking requests competing for a single room inventory unit, asserting that exactly one succeeds (201) and the competing write is rejected (409).
